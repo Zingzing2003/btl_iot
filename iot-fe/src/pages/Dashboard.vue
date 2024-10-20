@@ -14,9 +14,11 @@ import { computed, ref } from 'vue';
 import { onMounted,onBeforeMount
 
  } from 'vue';
-import { fa, tr } from 'element-plus/es/locales.mjs';
+import { de, fa, tr } from 'element-plus/es/locales.mjs';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
+let device = ref();
 
 let light = ref(100);
 let temperature = ref(40);
@@ -48,25 +50,25 @@ const humidityBg = computed(() => {
 
 let change= ref(1);
 let data = ref({
-  labels: [0, 2, 4, 6, 8, 10, 12,14,16,18],
+  labels: ["0", 2, 4, 6, 8, 10, 12,14,16,18],
   datasets: [
     {
       label: 'Temperature',
       backgroundColor: temperatureBg.value,
       borderColor: temperatureBg.value,
-      data:  [],
+      data:  [0],
     },
     {
       label: 'Humidity',
       backgroundColor: humidityBg.value,
       borderColor: humidityBg.value,
-      data: [],
+      data: [0],
     },
     {
       label: 'Light',
       backgroundColor: lightBg.value,
       borderColor: lightBg.value,
-      data: [],
+      data: [0],
     },
   ],
  
@@ -82,7 +84,7 @@ const fetchData = async () => {
     
     const response = await fetch('http://localhost:8080/api/get-top-sensors'); // Thay bằng URL của API
     const responseData = await response.json();
-    console.log(responseData.data);
+   // console.log(responseData.data);
 
     // light.value = responseData.light;
     // temperature.value = responseData.temperature;
@@ -90,16 +92,35 @@ const fetchData = async () => {
 
     // Cập nhật dữ liệu biểu đồ với dữ liệu mới
    
+    //data.value.datasets[0].data.unshift(responseData.data[0].Temperature);
     data.value.datasets[0].data = responseData.data.map(item => item.Temperature);
-    console.log(data.value.datasets[0].data)
+    //console.log(data.value.datasets[0].data)
     data.value.datasets[1].data = responseData.data.map(item => item.Humidity);
     data.value.datasets[2].data = responseData.data.map(item => item.Light);
-    temperature= data.value.datasets[0].data[0];
+    temperature.value= data.value.datasets[0].data[0];
     humidity= ref(data.value.datasets[1].data[0]);
-    light=  data.value.datasets[2].data[0];
+    light.value=  data.value.datasets[2].data[0];
+    if( data.value.labels.length>= 10)
+    {
+      data.value.labels.pop();// xóa phần tử cuối
+    }
+    const getCurrentTime = (): string => {
+    const now = new Date();
+    const hours = now.getHours(); // Lấy giờ
+    const minutes = now.getMinutes(); // Lấy phút
+    const seconds = now.getSeconds(); // Lấy giây
+    return `${hours}:${minutes}:${seconds}`; // Trả về chuỗi định dạng "HH:MM:SS"
+    };
+    let h= new Date().getHours();
+    data.value.labels.unshift(getCurrentTime());// thêm phần tử đầu
+    // if (data.length >= 10) {
+    //     data.shift(); // Xóa phần tử đầu tiên nếu mảng đã có 10 phần tử
+    // }
+    
+    // data.push(newElement);
 
-    console.log( data.value.datasets[2].data);
-    chartDataKey += 1;
+    // console.log( data.value.datasets[2].data);
+    chartDataKey .value++;
    // change= ref(chartDataKey);
     check.value= !check.value;
    
@@ -114,12 +135,12 @@ const fetchData = async () => {
 
 onMounted   (() => {
   fetchData();
- 
- //setInterval(fetchData, 2000); // Lấy dữ liệu mỗi 2 giây
+  setInterval(fetchData, 5000); // Lấy dữ liệu mỗi 5 giây
 });
 
 const OnAirToggle= ()=>{
   isAirConditionActive.value= !isAirConditionActive.value;
+  device.value= "Air";
   // xử lí
   if( isAirConditionActive.value){
     state.value= "off";
@@ -137,6 +158,7 @@ const OnAirToggle= ()=>{
 
 const OnFanToggle= ()=>{
   isFanActive.value= !isFanActive.value;
+  device.value= "Fan";
   // xử lí
   if( isFanActive.value){
     state.value= "off";
@@ -152,13 +174,31 @@ const OnFanToggle= ()=>{
  // console.log(isAirConditionActive.value);
 }
 
+const OnLedToggle= ()=>{
+  isLightActive.value= !isLightActive.value;
+  device.value= "Led";
+  // xử lí
+  if( isLightActive.value){
+    state.value= "off";
+  }
+  else{
+    state.value= "on";
+  }
+ 
+  postData(state.value);
+  //console.log(state.value);
+
+  isLightActive.value= !isLightActive.value;
+ // console.log(isAirConditionActive.value);
+}
+
 const postData = async (state: string) => {
  
   console.log("post");
  try {
 
   
-  let response= await fetch(`http://localhost:8080/api/control-air?state=${state}`, {
+  let response= await fetch(`http://localhost:8080/api/control-device?state=${state}&device=${device.value}`, {
     method: 'POST'});
 
     console.log(response.json);
@@ -214,7 +254,8 @@ const options = {
         </div>
 
         <div class="h-full w-1/3 flex flex-col gap-5">
-          <div class="bg-blue-500 h-1/3 w-full rounded-2xl flex flex-col gap-2 justify-center items-center">
+          <div  :style="{ 'background-color': isLightActive== true ? 'green': 'grey'}"
+            class="bg-blue-500 h-1/3 w-full rounded-2xl flex flex-col gap-2 justify-center items-center">
             <div class="text-xl">
              
             </div>
@@ -222,9 +263,10 @@ const options = {
               <path
                 d="M480-80q-27 0-47.5-13T406-129h-14q-24 0-42-18t-18-42v-143q-66-43-104-110t-38-148q0-121 84.5-205.5T480-880q121 0 205.5 84.5T770-590q0 81-38 148T628-332v143q0 24-18 42t-42 18h-14q-6 23-26.5 36T480-80Zm-88-109h176v-44H392v44Zm0-84h176v-40H392v40Zm-9-100h74v-137l-92-92 31-31 84 84 84-84 31 31-92 92v137h74q60-28 96.5-87T710-590q0-97-66.5-163.5T480-820q-97 0-163.5 66.5T250-590q0 71 36.5 130t96.5 87Zm97-176Zm0-48Z" />
             </svg>
-            <el-switch v-model="isLightActive" />
+            <el-switch v-model="isLightActive" @change="OnLedToggle"/>
           </div>
-          <div class="bg-blue-500 h-1/3 w-full rounded-2xl flex flex-col gap-2 justify-center items-center">
+          <div  :style="{ 'background-color': isFanActive== true ? 'green': 'grey'}"
+            class="bg-blue-500 h-1/3 w-full rounded-2xl flex flex-col gap-2 justify-center items-center">
             <div class="text-xl">
           
             </div>
@@ -232,10 +274,11 @@ const options = {
               <path
                 d="M424-80q-51 0-77.5-30.5T320-180q0-26 11.5-50.5T367-271q22-14 36.5-37.5T425-373q-1 0-1-.5t-2-1.5l-116 41q-17 6-33 10t-33 4q-63 0-111.5-55T80-536q0-51 30.5-77.5T179-640q26 0 51 11.5t41 35.5q14 22 39.5 37.5T373-535q.67-1 1.33-2 .67-1 .67-2l-41-115q-6-17-10-33t-4-32q0-64 55-112.5T536-880q51 0 77.5 30.5T640-781q0 26-11.5 51T593-689q-26 17-40.5 45T536-586q1 1 1.5.5t1.5 1.5l115-43q17-6 32.5-9.5T719-640q81 0 121 67t40 149q0 51-32 77.5T777-320q-25 0-48.5-11.5T689-367q-14-22-37.5-36.5T587-426q-1 2-1.6 3.06-.6 1.06-1.4 1.94l42 115q6 16 10 30.5t4 30.5q1 65-54 115T424-80Zm56-340q25 0 42.5-17.5T540-480q0-25-17.5-42.5T480-540q-25 0-42.5 17.5T420-480q0 25 17.5 42.5T480-420Zm-58-165q12-5 26-9t28-6q8-45 29.5-81t54.5-58q10-7 15-17.5t5-24.5q0-16.42-10.5-27.71T536-820q-43 0-98.5 20.55-55.5 20.54-57.5 80.32 0 11.21 2.5 21.17T388-680l34 95ZM240-380q14 0 40-8l95-34q-8-14-11.5-28t-3.5-26q-45-8-81-29.5T221-560q-7-10-19-15t-23-5q-19 0-29 10.5T140-536q0 61.94 25.63 108.97Q191.25-380 240-380Zm184 240q53.13 0 104.57-23Q580-186 580-242q0-11-2-19t-6-19l-34-95q-13 6-26.5 10t-27.5 5q-8 45-29.5 81T400-221q-9 6-14.5 18.5T380-179q1 15 11 27t33 12Zm353-240q16.83 0 29.91-9.17Q820-398.33 820-424q0-44-20.5-99t-81.33-57q-11.17 0-20.67 2-9.5 2-17.5 5l-95 35q5 8 10 25.5t5 28.5q45 8 81 29.5t58 54.5q6 8 16.67 14 10.66 6 21.33 6ZM600-484ZM476-600ZM360-476Zm124 116Z" />
             </svg>
-            <el-switch v-model="isFanActive"/>
+            <el-switch v-model="isFanActive" @change="OnFanToggle"/>
           </div>
-          <div class="text-xl font-semibold text-black">Điều hòa không khí</div>
-          <div class="bg-blue-500 h-1/3 w-full rounded-2xl flex flex-col gap-2 justify-center items-center">
+          <!-- <div class="text-xl font-semibold text-black">Điều hòa không khí</div> -->
+          <div :style="{ 'background-color': isAirConditionActive== true ? 'green': 'grey'}"
+           class=" h-1/3 w-full rounded-2xl flex flex-col gap-2 justify-center items-center">
             <div class="text-xl">
              Bật/Tắt
            </div>

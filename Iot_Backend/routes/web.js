@@ -4,6 +4,7 @@ import { getAllSensors, GetTopSensors } from '../controller/sensorController.js'
 import { ChangeAir } from '../controller/airController.js';
 import { ChangeFan } from '../controller/fanController.js';
 import { ChangeLed } from '../controller/ledController.js';
+import { ControlDevice } from '../controller/deviveController.js';
 const router = Express.Router();
 const InitWebRoutes=async (app)=>{
     //router.get('/api/get-all-data',HandleGetData );
@@ -13,7 +14,7 @@ const InitWebRoutes=async (app)=>{
     router.post('/api/control-air', ChangeAir );
     router.post('/api/control-fan', ChangeFan);
     router.post('/api/control-led', ChangeLed);
-
+    router.post('/api/control-device', ControlDevice);
     return app.use("/", router);
 }
 export default InitWebRoutes;

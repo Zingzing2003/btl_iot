@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { da } from 'element-plus/es/locales.mjs';
 import { ref } from 'vue'
 import { onMounted,watchEffect  } from 'vue';
 const humidity = ref<number>()
@@ -64,6 +65,7 @@ function search() {
   fetchData(currentPage.value, pageSize.value, searchBy.value, keyword.value);
 }
 
+let dataKey= ref(0);
 const fetchData = async (page: number, pageSize: number,  searchBy : string, keyword : number) => {
  
  try {
@@ -84,6 +86,7 @@ const fetchData = async (page: number, pageSize: number,  searchBy : string, key
    tableData = ref(fullTableData.value.slice(0, pageSize));
    counter.value++;
    console.log(fullTableData.value);
+   dataKey.value++;
    //watchEffect (()=>{})
    //totalPage= ref(responseData.data.tôt)
   
@@ -141,7 +144,7 @@ function reset() {
       <el-button size="large" type="success" @click="reset">Đặt lại ban đầu</el-button>
     </div>
     <div class="mt-5">
-      <el-table :data="tableData" stripe style="width: 100%">
+      <el-table :data="tableData" stripe style="width: 100%" :key="dataKey" >
         <el-table-column
           type="index"
           label="ID"

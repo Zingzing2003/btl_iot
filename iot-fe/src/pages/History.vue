@@ -55,6 +55,7 @@ const tableRowClassName = ({ row, rowIndex }: {
   }
   return ''
 }
+let dataKey= ref(0);
 
 const fetchData = async (page: number, pageSize: number, date: string, Device : string) => {
  
@@ -73,7 +74,7 @@ const fetchData = async (page: number, pageSize: number, date: string, Device : 
     tableData = ref(fullTableData.value.slice(0, pageSize.value))
     totalAction.value= responseData.totalActions;
     console.log("t", totalAction.value)
-
+    dataKey.value++;
 
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu từ API: ", error);
@@ -142,7 +143,7 @@ const handleSearch = () => {
     </div>
 
     <div class="mt-5">
-      <el-table :data="tableData" stripe style="width: 100%" :row-class-name="tableRowClassName">
+      <el-table :data="tableData" stripe style="width: 100%" :row-class-name="tableRowClassName" :key="dataKey">
         <el-table-column
           type="index"
           label="ID"
